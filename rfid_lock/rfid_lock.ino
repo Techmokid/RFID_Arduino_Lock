@@ -73,7 +73,7 @@ unsigned long lastSerialUpdate = 0;
 bool hasErrorPrinted = false;
 bool hasPrinted = false;
 void loop()  {
-  if (millis() - lastSerialUpdate > 1000) { Serial.println("KEEP ALIVE"); lastSerialUpdate = millis(); }
+  //if (millis() - lastSerialUpdate > 1000) { Serial.println("KEEP ALIVE"); lastSerialUpdate = millis(); }
 
   if (!rfid.PCD_PerformSelfTest()) {
     if (!hasErrorPrinted) {
@@ -101,16 +101,12 @@ void loop()  {
   if (!rfid.PICC_ReadCardSerial())   { return; }
   hasPrinted = false;
   hasErrorPrinted = false;
-  
-  String content= "";
-  for (byte i = 0; i < rfid.uid.size; i++) {
-    content.concat(String(rfid.uid.uidByte[i]   < 0x10 ? " 0" : " "));
-    content.concat(String(rfid.uid.uidByte[i],   HEX));
-  }
-  
+
+  String content = readBlockData(1);  // Read block 1 (you may need to adjust based on your tag's layout)
   content.toUpperCase();
-  Serial.println(content);
-  if (content.substring(1) == "2A   17 6E 3C") {
+  Serial.println("Contents: " + content);
+  
+  if (content == "MYSECRETKEY41139") {
     // Correct card used
     lcd.clear();
     printLCD(0,0,"    UNLOCKED    ");
@@ -151,3 +147,38 @@ String GetRFIDVersion() {
   return String(rfid.PCD_ReadRegister(rfid.CommandReg), HEX);
 }
 
+String readBlockData(byte block) {
+  MFRC522::MIFARE_Key key;
+  for (byte i = 0; i < 6; i++) key.keyByte[i] = 0xFF;
+
+  MFRC522::StatusCode status;
+
+  // Authenticate with the card
+  status = rfid.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, block, &key, &(rfid.uid));
+  if (status != MFRC522::STATUS_OK) {
+    Serial.print(F("Authentication failed: "));
+    Serial.println(rfid.GetStatusCodeName(status));
+    return "";
+  }
+
+  byte buffer[18];
+  byte len = 18;
+
+  // Read data from the block
+  status = rfid.MIFARE_Read(block, buffer, &len);
+  if (status != MFRC522::STATUS_OK) {
+    Serial.print(F("Reading failed: "));
+    Serial.println(rfid.GetStatusCodeName(status));
+    return "";
+  }
+
+  // Convert the data to a string, ignoring spaces (0x20)
+  String data = "";
+  for (uint8_t i = 0; i < 16; i++) {
+    if (buffer[i] != 32) {
+      data += (char)buffer[i];
+    }
+  }
+
+  return data;
+}
