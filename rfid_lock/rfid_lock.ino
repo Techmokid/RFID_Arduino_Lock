@@ -18,11 +18,14 @@
 #define RFID_PIN_SS       10
 #define RFID_PIN_RST      9
 
-
 // Other
 #define LED_G_PIN         A0
 #define LED_R_PIN         A1
 #define RELAY_PIN         A2
+
+// Values
+#define UNLOCK_TIME       6    // Seconds
+#define SECRET_KEY        "MYSECRETKEY41139"
 
 LiquidCrystal lcd(LCD_PIN_RS, LCD_PIN_E, LCD_PIN_D4, LCD_PIN_D5, LCD_PIN_D6, LCD_PIN_D7);
 MFRC522 rfid(RFID_PIN_SS, RFID_PIN_RST);
@@ -106,7 +109,7 @@ void loop()  {
   content.toUpperCase();
   Serial.println("Contents: " + content);
   
-  if (content == "MYSECRETKEY41139") {
+  if (content == SECRET_KEY) {
     // Correct card used
     lcd.clear();
     printLCD(0,0,"    UNLOCKED    ");
@@ -115,7 +118,7 @@ void loop()  {
     lcd.clear();
     digitalWrite(LED_G_PIN, HIGH);
     digitalWrite(RELAY_PIN, HIGH);
-    delay(6000);
+    delay(UNLOCK_TIME * 1000);
 
     printLCD(0,0,"     LOCKED     ");
     digitalWrite(RELAY_PIN, LOW);
