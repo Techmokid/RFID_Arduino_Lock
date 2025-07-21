@@ -70,6 +70,8 @@ void setup() {
       delay(150);
     }
   }
+
+  Serial.println("MFRC522 ok");
 }
 
 unsigned long lastSerialUpdate = 0;
